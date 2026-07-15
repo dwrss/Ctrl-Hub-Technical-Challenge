@@ -38,6 +38,17 @@ It also seeds a few users:
 
 The repository includes an `example-requests.http` [.http file](https://http-files.org) with some sample API requests.
 
+## Architecture
+The code is split into three layers, each only depending inward:
+* `internal/domain` — entities (`User`, `EquipmentItem`, `Exposure`, `ExposureSummary`) and the repository/publisher interfaces they're accessed through.
+This is where the A(8)/Points formulas and the linear-sum-vs-quadrature aggregation logic live (though the aggregation is duplicated in `internal/infra`).
+* `internal/app` — `ExposureService`, which orchestrates the domain and ports: looking up users/equipment, persisting exposures, resolving the nested `user` field, and publishing events.
+* `internal/http` and `internal/infra` — adapters. `internal/http` implements the spec's routes over `ExposureService`; `internal/infra/mongodb` and `internal/infra/redis` implement the domain's repository/publisher interfaces.
+
+`internal/app` and `internal/domain` have no dependency on MongoDB, Redis, or `net/http` — they're tested with in-memory fakes, not a live stack.
+
+The user's exposure summary is computed via a MongoDB aggregation pipeline. This does mean the data layer encodes some knowledge of the application's business logic, but I think that is justifiable for the scalability in a real-world system.
+
 ## Events
 The service publishes two different types of events, these events are not actually used but serve as examples of events the system might want to publish:
 * `exposure.recorded` event when a new exposure is added
