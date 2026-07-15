@@ -59,14 +59,14 @@ The most obvious omission is an `exposure.exceeded` event, to notify when a user
 ## Divergences from spec
 There are a couple of places where this implementation diverges from the spec:
 
-* The spec says /users/{userId}/exposure-summary takes `starting_at` and `ending_at` with format `date`, but I believe this should be `date-time` per the https://swagger.io/docs/specification/v3_0/data-models/data-types/[OpenAPI spec]
+* The spec says `/users/{userId}/exposure-summary` takes `starting_at` and `ending_at` with format `date`, but I believe this should be `date-time` per the https://swagger.io/docs/specification/v3_0/data-models/data-types/[OpenAPI spec]
 * `GET /exposure/{exposureId}` listed a 201 response status code, but nothing is being created for this route. In this implementation, I have returned 200.
 In a real-world scenario, I would want to confirm this change is appropriate. If an external system is calling the API, it's possible the 201 code is required.
 
 
-## Caveats/desired extensions
-- `GET /exposure` returns all exposures. This matches the API spec, but is probably not desirable. The endpoint should be paged.
-- Originally, I expected to implement an inbox pattern and MongoDB is a good fit for that model.
+## Limitations/desired extensions
+- `GET /exposure` returns all exposures. This matches the API spec, but is probably not desirable and should be paged.
+- Originally, I expected to implement an inbox pattern; MongoDB is a good fit for that model.
 For the design as-implemented, it would probably have been simpler to use a relational database.
 - Equipment data is duplicated into the exposure collection. I think this is probably unnecessary, though it could be desirable
 to preserve equipment specs at-time-of-exposure.  
