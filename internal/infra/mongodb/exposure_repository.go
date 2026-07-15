@@ -21,6 +21,8 @@ type exposureDoc struct {
 	UserID     string       `bson:"user_id"`
 	Duration   int          `bson:"duration"`
 	OccurredAt time.Time    `bson:"occurred_at"`
+	A8         float64      `bson:"a8"`
+	Points     float64      `bson:"points"`
 }
 
 type ExposureRepository struct {
@@ -42,6 +44,8 @@ func toExposureDoc(e domain.Exposure) exposureDoc {
 		UserID:     e.UserID().String(),
 		Duration:   e.Duration().Int(),
 		OccurredAt: e.OccurredAt(),
+		A8:         e.A8(),
+		Points:     e.Points(),
 	}
 }
 
