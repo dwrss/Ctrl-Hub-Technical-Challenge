@@ -68,6 +68,22 @@ func TestExposureSummaryEndpoint(t *testing.T) {
 	if rec.Code != 404 {
 		t.Fatalf("GET exposure-summary unknown user: status = %d, want 404", rec.Code)
 	}
+
+	// GET exposure-summary for a malformed (non-UUID) userId should 400,
+	// not fall through to a 404/500 from the service layer.
+	req = httptest.NewRequest("GET", "/users/not-a-uuid/exposure-summary", nil)
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != 400 {
+		t.Fatalf("GET exposure-summary invalid userId: status = %d, want 400", rec.Code)
+	}
+	var errBody errorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &errBody); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	if errBody.Error != "invalid userId" {
+		t.Errorf("error = %q, want %q", errBody.Error, "invalid userId")
+	}
 }
 
 // TestExposureSummaryWindowing exercises what TestExposureSummaryEndpoint

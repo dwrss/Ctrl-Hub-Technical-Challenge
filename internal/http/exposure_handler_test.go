@@ -338,6 +338,101 @@ func TestListExposures_SurvivesOrphanedEventPublishFailure(t *testing.T) {
 	}
 }
 
+// TestCreateExposure_Errors asserts that POST /exposure maps each failure
+// mode to the correct status code and error body, not just a blanket 400/500.
+func TestCreateExposure_Errors(t *testing.T) {
+	equipment, err := domain.NewEquipmentItem(uuid.MustParse("2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49"), "AirCat - Drill - 4337", 2.1)
+	if err != nil {
+		t.Fatalf("NewEquipmentItem: %v", err)
+	}
+	user, err := domain.NewUser(uuid.MustParse("713be58e-0d79-4df2-a85c-9f44ca513a7d"), "Bobby Tables")
+	if err != nil {
+		t.Fatalf("NewUser: %v", err)
+	}
+
+	newRouter := func() (*ExposureHandler, *ExposureSummaryHandler) {
+		exposureRepo := newFakeExposureRepo()
+		equipmentRepo := &fakeEquipmentRepo{byID: map[uuid.UUID]domain.EquipmentItem{equipment.ID(): equipment}}
+		userRepo := &fakeUserRepo{byID: map[uuid.UUID]domain.User{user.ID(): user}}
+		publisher := &fakePublisher{}
+		service := app.NewExposureService(exposureRepo, equipmentRepo, userRepo, publisher)
+		return NewExposureHandler(service), NewExposureSummaryHandler(service)
+	}
+
+	tests := []struct {
+		name       string
+		body       string
+		wantStatus int
+		wantError  string
+	}{
+		{
+			name:       "malformed JSON body",
+			body:       `{"equipment_id": "2e85d43d`,
+			wantStatus: 400,
+			wantError:  "invalid request body",
+		},
+		{
+			name:       "invalid user_id (not a UUID)",
+			body:       `{"equipment_id":"2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49","user_id":"not-a-uuid","duration":5}`,
+			wantStatus: 400,
+			wantError:  "invalid user_id",
+		},
+		{
+			name:       "invalid equipment_id (not a UUID)",
+			body:       `{"equipment_id":"not-a-uuid","user_id":"713be58e-0d79-4df2-a85c-9f44ca513a7d","duration":5}`,
+			wantStatus: 400,
+			wantError:  "invalid equipment_id",
+		},
+		{
+			name:       "unknown user_id",
+			body:       `{"equipment_id":"2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49","user_id":"00000000-0000-0000-0000-000000000000","duration":5}`,
+			wantStatus: 404,
+			wantError:  "failed to get user: not found",
+		},
+		{
+			name:       "unknown equipment_id",
+			body:       `{"equipment_id":"00000000-0000-0000-0000-000000000000","user_id":"713be58e-0d79-4df2-a85c-9f44ca513a7d","duration":5}`,
+			wantStatus: 404,
+			wantError:  "failed to get equipment: not found",
+		},
+		{
+			name:       "zero duration",
+			body:       `{"equipment_id":"2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49","user_id":"713be58e-0d79-4df2-a85c-9f44ca513a7d","duration":0}`,
+			wantStatus: 400,
+			wantError:  "duration must be positive",
+		},
+		{
+			name:       "negative duration",
+			body:       `{"equipment_id":"2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49","user_id":"713be58e-0d79-4df2-a85c-9f44ca513a7d","duration":-5}`,
+			wantStatus: 400,
+			wantError:  "duration must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exposureHandler, summaryHandler := newRouter()
+			router := NewRouter(exposureHandler, summaryHandler)
+
+			req := httptest.NewRequest("POST", "/exposure", bytes.NewReader([]byte(tt.body)))
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d (body = %s)", rec.Code, tt.wantStatus, rec.Body.String())
+			}
+
+			var got errorResponse
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatalf("decode error response: %v", err)
+			}
+			if got.Error != tt.wantError {
+				t.Errorf("error = %q, want %q", got.Error, tt.wantError)
+			}
+		})
+	}
+}
+
 // TestGetExposure_ReportsOrphanedUser asserts that GET /exposure/{id} on an
 // orphaned exposure (existing exposure, unresolvable user) returns 500, not
 // 404 — the exposure genuinely exists, so this is not a client-side error.
