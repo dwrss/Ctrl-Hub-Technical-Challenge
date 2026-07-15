@@ -233,8 +233,6 @@ func TestListExposures_ExcludesOrphanedExposure(t *testing.T) {
 // TestListExposures_BatchesOrphanedEventPublish asserts that multiple
 // orphaned exposures in a single list request are reported via ONE
 // PublishOrphaned call carrying all of them, not one call per orphan.
-// A single-orphan test can't distinguish batched from per-item publishing;
-// this needs at least two.
 func TestListExposures_BatchesOrphanedEventPublish(t *testing.T) {
 	equipment, err := domain.NewEquipmentItem(uuid.MustParse("2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49"), "AirCat - Drill - 4337", 2.1)
 	if err != nil {
