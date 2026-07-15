@@ -56,8 +56,8 @@ func (r *fakeExposureRepo) Create(ctx context.Context, e domain.Exposure) (domai
 	return e, nil
 }
 
-func (r *fakeExposureRepo) ListByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) ([]domain.Exposure, error) {
-	var out []domain.Exposure
+func (r *fakeExposureRepo) SummarizeByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) (domain.ExposureAccumulator, error) {
+	var acc domain.ExposureAccumulator
 	for _, e := range r.items {
 		if e.UserID() != userID {
 			continue
@@ -68,9 +68,9 @@ func (r *fakeExposureRepo) ListByUser(ctx context.Context, userID uuid.UUID, fro
 		if to != nil && e.OccurredAt().After(*to) {
 			continue
 		}
-		out = append(out, e)
+		acc = acc.Add(e)
 	}
-	return out, nil
+	return acc, nil
 }
 
 type fakeEquipmentRepo struct {

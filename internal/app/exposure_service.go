@@ -179,10 +179,10 @@ func (s *ExposureService) GetUserExposureSummary(ctx context.Context, userID uui
 		return domain.ExposureSummary{}, err
 	}
 
-	exposures, err := s.exposures.ListByUser(ctx, userID, from, to)
+	acc, err := s.exposures.SummarizeByUser(ctx, userID, from, to)
 	if err != nil {
 		return domain.ExposureSummary{}, err
 	}
 
-	return domain.SummarizeExposures(user, exposures), nil
+	return domain.FinalizeExposureSummary(user, acc), nil
 }

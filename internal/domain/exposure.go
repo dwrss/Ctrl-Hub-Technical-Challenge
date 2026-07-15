@@ -52,7 +52,7 @@ func (e Exposure) A8() float64 {
 
 // Points returns the Partial Exposure Points for this exposure. By
 // construction Points == 16 * A8() * A8() for any single exposure; see
-// SummarizeExposures for why that identity matters when aggregating.
+// FinalizeExposureSummary for why that identity matters when aggregating.
 func (e Exposure) Points() float64 {
 	points := math.Pow(e.equipment.VibrationMagnitude()/2.5, 2) * (e.duration.dailyFraction() * 100)
 	return math.Round(points)
@@ -64,7 +64,9 @@ type ExposureRepository interface {
 	List(ctx context.Context) ([]Exposure, error)
 	Get(ctx context.Context, id uuid.UUID) (Exposure, error)
 	Create(ctx context.Context, e Exposure) (Exposure, error)
-	// ListByUser returns a user's exposures. A nil from/to means that bound
-	// is unset, i.e. no windowing on that side.
-	ListByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) ([]Exposure, error)
+	// SummarizeByUser returns the ExposureAccumulator for a user's exposures
+	// within an optional time window. A nil from/to means that bound is
+	// unset, i.e. no windowing on that side. A user with no matching
+	// exposures returns the zero ExposureAccumulator, not an error.
+	SummarizeByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) (ExposureAccumulator, error)
 }

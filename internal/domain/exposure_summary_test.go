@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestSummarizeExposures(t *testing.T) {
+func TestExposureAccumulator_FinalizeExposureSummary(t *testing.T) {
 	airCatDrill, jcbBreaker, user := testFixtures(t)
 	exposures := []Exposure{
 		mustExposure(t, uuid.New(), airCatDrill, user.ID(), mustMinutes(t, 120), time.Now()),
@@ -16,7 +16,11 @@ func TestSummarizeExposures(t *testing.T) {
 		mustExposure(t, uuid.New(), airCatDrill, user.ID(), mustMinutes(t, 200), time.Now()),
 	}
 
-	summary := SummarizeExposures(user, exposures)
+	var acc ExposureAccumulator
+	for _, e := range exposures {
+		acc = acc.Add(e)
+	}
+	summary := FinalizeExposureSummary(user, acc)
 
 	// points must equal the linear sum of each exposure's points.
 	var wantPoints float64
@@ -47,5 +51,22 @@ func TestSummarizeExposures(t *testing.T) {
 	// points individually.
 	if math.Abs(summary.Points()-16*summary.A8()*summary.A8()) > float64(len(exposures)) {
 		t.Errorf("aggregate invariant broken: Points=%v, 16*A8^2=%v", summary.Points(), 16*summary.A8()*summary.A8())
+	}
+}
+
+// TestExposureAccumulator_EmptyIsZeroSummary confirms the zero-value
+// ExposureAccumulator (what a repository returns for a user with no matching
+// exposures) finalises to a zero-value summary rather than NaN or an error —
+// math.Sqrt(0) == 0, so this holds without special-casing.
+func TestExposureAccumulator_EmptyIsZeroSummary(t *testing.T) {
+	_, _, user := testFixtures(t)
+
+	summary := FinalizeExposureSummary(user, ExposureAccumulator{})
+
+	if summary.A8() != 0 {
+		t.Errorf("A8 = %v, want 0", summary.A8())
+	}
+	if summary.Points() != 0 {
+		t.Errorf("Points = %v, want 0", summary.Points())
 	}
 }

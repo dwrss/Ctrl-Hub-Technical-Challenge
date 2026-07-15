@@ -115,8 +115,20 @@ func (r *ExposureRepository) Create(ctx context.Context, e domain.Exposure) (dom
 	return e, nil
 }
 
-func (r *ExposureRepository) ListByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) ([]domain.Exposure, error) {
-	filter := bson.M{"user_id": userID.String()}
+// summaryAccumulatorDoc mirrors the $group stage's output shape in
+// SummarizeByUser's pipeline.
+type summaryAccumulatorDoc struct {
+	PointsTotal    float64 `bson:"points_total"`
+	A8SquaredTotal float64 `bson:"a8_squared_total"`
+}
+
+// SummarizeByUser computes a user's exposure totals via an MongoDB
+// aggregation pipeline.
+// $group performs the summation server-side;
+// a8 is squared per-document ($pow) before summing so the caller only needs
+// to take the final sqrt (see domain.FinalizeExposureSummary).
+func (r *ExposureRepository) SummarizeByUser(ctx context.Context, userID uuid.UUID, from, to *time.Time) (domain.ExposureAccumulator, error) {
+	match := bson.M{"user_id": userID.String()}
 
 	occurredAt := bson.M{}
 	if from != nil {
@@ -126,12 +138,21 @@ func (r *ExposureRepository) ListByUser(ctx context.Context, userID uuid.UUID, f
 		occurredAt["$lte"] = *to
 	}
 	if len(occurredAt) > 0 {
-		filter["occurred_at"] = occurredAt
+		match["occurred_at"] = occurredAt
 	}
 
-	cursor, err := r.collection.Find(ctx, filter)
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$group", Value: bson.M{
+			"_id":              nil,
+			"points_total":     bson.M{"$sum": "$points"},
+			"a8_squared_total": bson.M{"$sum": bson.M{"$pow": bson.A{"$a8", 2}}},
+		}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return nil, err
+		return domain.ExposureAccumulator{}, err
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
 		err := cursor.Close(ctx)
@@ -140,18 +161,20 @@ func (r *ExposureRepository) ListByUser(ctx context.Context, userID uuid.UUID, f
 		}
 	}(cursor, ctx)
 
-	var docs []exposureDoc
+	var docs []summaryAccumulatorDoc
 	if err := cursor.All(ctx, &docs); err != nil {
-		return nil, err
+		return domain.ExposureAccumulator{}, err
 	}
 
-	exposures := make([]domain.Exposure, 0, len(docs))
-	for _, doc := range docs {
-		exposure, err := fromExposureDoc(doc)
-		if err != nil {
-			return nil, err
-		}
-		exposures = append(exposures, exposure)
+	// $group over no matching documents yields no rows, not a zeroed
+	// document — a user with no exposures in the window is a valid,
+	// non-error case that must still report a zero accumulator.
+	if len(docs) == 0 {
+		return domain.ExposureAccumulator{}, nil
 	}
-	return exposures, nil
+
+	return domain.ExposureAccumulator{
+		PointsTotal:    docs[0].PointsTotal,
+		A8SquaredTotal: docs[0].A8SquaredTotal,
+	}, nil
 }

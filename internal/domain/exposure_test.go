@@ -104,8 +104,8 @@ func TestExposure_Points(t *testing.T) {
 
 // TestExposure_PointsA8Invariant confirms Points == 16 * A8^2 holds for a
 // single exposure across a range of equipment/durations. This is the
-// identity that SummarizeExposures relies on to justify combining A8 via
-// root-sum-of-squares rather than a linear sum.
+// identity that FinalizeExposureSummary relies on to justify combining A8
+// via root-sum-of-squares rather than a linear sum.
 func TestExposure_PointsA8Invariant(t *testing.T) {
 	airCatDrill, jcbBreaker, user := testFixtures(t)
 	durations := []int{1, 5, 60, 245, 480}
