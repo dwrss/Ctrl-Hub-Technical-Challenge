@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      MONGO_URI: "mongodb://mongo:27017"
+      MONGO_DB: "havs_exposure"
+      REDIS_ADDR: "redis:6379"
+      REDIS_STREAM: "exposure.recorded"
+      SEED_ON_STARTUP: "${SEED_ON_STARTUP:-false}"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:8
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mongo-data:

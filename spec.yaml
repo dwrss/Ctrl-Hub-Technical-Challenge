@@ -1,0 +1,187 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Equipment Exposure Service
+paths:
+  /exposure:
+    get:
+      summary: Retrieve a collection of exposure resources
+      operationId: getExposures
+      responses:
+        "200":
+          description: The collection of exposure resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exposure"
+    post:
+      summary: Record an exposure
+      operationId: recordExposure
+      requestBody:
+        $ref: "#/components/requestBodies/ExposurePost"
+      responses:
+        "201":
+          description: The created exposure resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exposure"
+
+  /exposure/{exposureId}:
+    get:
+      summary: Retrieve an exposure resource
+      operationId: getExposure
+      parameters:
+        - name: exposureId
+          required: true
+          in: path
+          schema:
+            type: string
+            format: uuid
+            examples:
+              - "e8f7b50c-cc18-42f9-a275-0b4ead73f806"
+      responses:
+        "201":
+          description: The matching exposure resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exposure"
+
+  /users/{userId}/exposure-summary:
+    get:
+      summary: Retrieve the exposure summary for a user
+      operationId: getUserExposureSummary
+      parameters:
+        - name: userId
+          required: true
+          in: path
+          schema:
+            type: string
+            format: uuid
+            examples:
+              - "713be58e-0d79-4df2-a85c-9f44ca513a7d"
+        - name: starting_at
+          required: false
+          in: query
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2025-01-01T00:00:00Z"
+        - name: ending_at
+          required: false
+          in: query
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2025-01-31T23:59:59Z"
+      responses:
+        "200":
+          description: The summary payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExposureSummary"
+
+components:
+  requestBodies:
+    ExposurePost:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              equipment_id:
+                type: string
+                format: uuid
+                examples:
+                  - "2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49"
+              duration:
+                type: integer
+                description: The duration of the exposure (in minutes)
+                examples:
+                  - 5
+              user_id:
+                type: string
+                format: uuid
+                examples:
+                  - "713be58e-0d79-4df2-a85c-9f44ca513a7d"
+  schemas:
+    Exposure:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples:
+            - "e8f7b50c-cc18-42f9-a275-0b4ead73f806"
+        equipment:
+          $ref: "#/components/schemas/EquipmentItem"
+        duration:
+          type: integer
+          description: The duration of the exposure (in minutes)
+          examples:
+            - 5
+        a8:
+          type: number
+          description: The A8 value for the exposure
+          examples:
+            - 1.25
+        points:
+          type: number
+          description: The partial exposure of points
+          examples:
+            - 25.1
+        user:
+          $ref: "#/components/schemas/User"
+    ExposureSummary:
+      type: object
+      properties:
+        a8:
+          type: number
+          description: The A8 value for the exposure
+          examples:
+            - 1.25
+        points:
+          type: number
+          description: The partial exposure of points
+          examples:
+            - 25.1
+        user:
+          $ref: "#/components/schemas/User"
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples:
+            - "713be58e-0d79-4df2-a85c-9f44ca513a7d"
+        name:
+          type: string
+          examples:
+            - "Bobby Tables"
+    EquipmentItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples:
+            - "2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49"
+            - "36603447-2f30-41b1-a908-526c0b6f1755"
+        name:
+          type: string
+          examples:
+            - "AirCat - Drill - 4337"
+            - "JCB - Hydraulic Breaker - CEJCBHM25"
+        vibration_magnitude:
+          type: number
+          examples:
+            - 2.1
+            - 4.0

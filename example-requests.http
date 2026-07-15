@@ -1,0 +1,67 @@
+### Submit for Grace Hopper
+POST http://localhost:8080/exposure
+Content-Type: application/json
+
+{
+  "user_id": "78776e50-0e1a-4282-ba37-83d54c1b4795",
+  "equipment_id": "2e85d43d-dd9b-4e8d-b2ce-97b8d7d69d49",
+  "duration": 120
+}
+
+
+### Submit (second) for Grace Hopper
+POST http://localhost:8080/exposure
+Content-Type: application/json
+
+{
+  "user_id": "78776e50-0e1a-4282-ba37-83d54c1b4795",
+  "equipment_id": "36603447-2f30-41b1-a908-526c0b6f1755",
+  "duration": 40
+}
+<> 2026-07-14T221313-1.404.json
+<> 2026-07-14T221258-1.404.json
+
+### Submit for Bobby Tables
+POST http://localhost:8080/exposure
+Content-Type: application/json
+
+{
+  "user_id": "713be58e-0d79-4df2-a85c-9f44ca513a7d",
+  "equipment_id": "36603447-2f30-41b1-a908-526c0b6f1755",
+  "duration": 12000
+}
+
+<> 2026-07-14T221313.201.json
+<> 2026-07-14T221258.201.json
+<> 2026-07-14T221145.201.json
+
+
+### Get All Exposures
+GET http://localhost:8080/exposure
+
+<> 2026-07-14T221313.200.json
+<> 2026-07-14T221258.200.json
+<> 2026-07-14T221147.200.json
+<> 2026-07-14T221014.200.json
+
+
+### Fetch Grace Hooper Summary
+GET http://localhost:8080/users/78776e50-0e1a-4282-ba37-83d54c1b4795/exposure-summary
+
+<> 2026-07-14T222001-2.404.json
+<> 2026-07-14T221732.404.json
+<> 2026-07-14T221448-2.404.json
+<> 2026-07-14T221313-2.404.json
+<> 2026-07-14T221258-2.404.json
+
+### Fetch Bobby Tables Summary
+GET http://localhost:8080/users/713be58e-0d79-4df2-a85c-9f44ca513a7d/exposure-summary
+
+
+### Fetch Bobby Tables Summary (past)
+GET http://localhost:8080/users/713be58e-0d79-4df2-a85c-9f44ca513a7d/exposure-summary?starting_at=2026-07-14
+
+
+
+### Fetch Bobby Tables Summary (far future)
+GET http://localhost:8080/users/713be58e-0d79-4df2-a85c-9f44ca513a7d/exposure-summary?starting_at=2099-07-15
