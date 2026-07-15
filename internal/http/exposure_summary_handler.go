@@ -2,7 +2,6 @@ package http
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
@@ -43,7 +42,6 @@ func (h *ExposureSummaryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	summary, err := h.service.GetUserExposureSummary(r.Context(), userID, from, to)
-	log.Printf("GetUserExposureSummary(%s, %s, %s) -> %v, %v", userID, from, to, summary, err)
 	if errors.Is(err, domain.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
