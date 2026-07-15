@@ -34,7 +34,7 @@ func (h *ExposureHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // Get handles GET /exposure/{exposureId}.
-// Note: spec.yaml documents this endpoint's success response as 201.This is semantically incorrect for an idempotent function,
+// Note: spec.yaml documents this endpoint's success response as 201. This is semantically incorrect for an idempotent function,
 // so we return 200 here.
 func (h *ExposureHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.PathValue("exposureId"))
